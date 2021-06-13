@@ -4,6 +4,8 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.Partitioner;
+import java.util.*;
 import scala.Tuple2;
 
 import java.util.Arrays;
@@ -38,7 +40,7 @@ public class WordCount {
 
         // вызываем функцию, которая преобразует данные
         JavaPairRDD<String, Integer> result = countWords(rdd, broadcastDelimiter);
-
+        
         // сохраняем на диск
         result.saveAsTextFile(output);
 
@@ -53,7 +55,30 @@ public class WordCount {
     static JavaPairRDD<String, Integer> countWords(JavaRDD<String> rdd, Broadcast<String> delimiter) {
         return rdd.flatMap(line -> Arrays.asList(line.split(delimiter.getValue())).iterator())
                 .mapToPair(word -> new Tuple2<>(word, 1))
-                .reduceByKey(Integer::sum);
+                .reduceByKey(new charPartitioner(), Integer::sum);
     }
 
+    /**
+     * Функция реализует партиционер, который рабивает по разделам в зависимости от того гласная, согласная и другие символы
+     *
+     */
+
+    public static class charPartitioner extends Partitioner {
+        private final Set<Character> vowels = new HashSet<>(Arrays.asList('a','e','i','o','u','y'));
+
+        // Возвращает число партиционеров
+        @Override
+        public int numPartitions() {
+            return 3;
+        }
+ 
+       // Возвращает номер партиции в зависимоти от символа
+       @Override
+       public int getPartition(Object key) {
+           final char start = key.toString().isEmpty() ? 0 : key.toString().charAt(0);
+           return !Character.isAlphabetic(start) ? 0 : 
+                          vowels.contains(start) ? 1 : 
+                                                   2;
+       }
+    }
 }
