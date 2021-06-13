@@ -52,6 +52,7 @@ public class WordCount {
      */
     static JavaPairRDD<String, Integer> countWords(JavaRDD<String> rdd, Broadcast<String> delimiter) {
         return rdd.flatMap(line -> Arrays.asList(line.split(delimiter.getValue())).iterator())
+                .map(word -> word.toLowerCase())
                 .mapToPair(word -> new Tuple2<>(word, 1))
                 .reduceByKey(Integer::sum);
     }
