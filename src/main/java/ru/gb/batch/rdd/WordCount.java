@@ -37,7 +37,10 @@ public class WordCount {
         JavaRDD<String> rdd = sc.textFile(input);
 
         // вызываем функцию, которая преобразует данные
-        JavaPairRDD<String, Integer> result = countWords(rdd, broadcastDelimiter);
+        JavaPairRDD<String, Integer> rdd2 = countWords(rdd, broadcastDelimiter);
+
+        // меняем местами слово и счетчик, сортируем по счетчику
+        JavaPairRDD<Integer, String> result = orderCounts(rdd2);
 
         // сохраняем на диск
         result.saveAsTextFile(output);
@@ -55,5 +58,15 @@ public class WordCount {
                 .mapToPair(word -> new Tuple2<>(word, 1))
                 .reduceByKey(Integer::sum);
     }
+
+    /**
+     * Функция получает на вход {@code rdd} с tuple String, Integer, меняет ключ и значение местами 
+     * и сортирует по ключу в обратном порядке,
+     */
+    static JavaPairRDD<Integer, String> orderCounts(JavaPairRDD<String, Integer> rdd) {
+        return rdd.mapToPair(tuple -> new Tuple2<>(tuple._2(), tuple._1()))
+                .sortByKey(false); // false=обратный порядок сортировки
+    }
+
 
 }
