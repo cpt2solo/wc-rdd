@@ -40,7 +40,7 @@ public class WordCount {
 
         // вызываем функцию, которая преобразует данные
         JavaPairRDD<String, Integer> result = countWords(rdd, broadcastDelimiter);
-
+        
         // сохраняем на диск
         result.saveAsTextFile(output);
 
@@ -55,7 +55,7 @@ public class WordCount {
     static JavaPairRDD<String, Integer> countWords(JavaRDD<String> rdd, Broadcast<String> delimiter) {
         return rdd.flatMap(line -> Arrays.asList(line.split(delimiter.getValue())).iterator())
                 .mapToPair(word -> new Tuple2<>(word, 1))
-                .reduceByKey(Integer::sum);
+                .reduceByKey(new charPartitioner(), Integer::sum);
     }
 
     /**
@@ -70,15 +70,15 @@ public class WordCount {
         @Override
         public int numPartitions() {
             return 3;
-        };
+        }
  
        // Возвращает номер партиции в зависимоти от символа
        @Override
        public int getPartition(Object key) {
-           final char start = key.toString().charAt(0);
+           final char start = key.toString().isEmpty() ? 0 : key.toString().charAt(0);
            return !Character.isAlphabetic(start) ? 0 : 
                           vowels.contains(start) ? 1 : 
-                                                  2;
-       };
-    };
+                                                   2;
+       }
+    }
 }
